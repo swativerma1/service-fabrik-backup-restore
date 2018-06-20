@@ -15,37 +15,22 @@ from ..models.Attachment import Attachment
 class AzureClient(BaseClient):
     def __init__(self, operation_name, configuration, directory_persistent, directory_work_list, poll_delay_time,
                  poll_maximum_time):
+        print("****** lib client")
         super(AzureClient, self).__init__(operation_name, configuration, directory_persistent, directory_work_list,
                                           poll_delay_time, poll_maximum_time)
-        self.subscription_id = configuration['subscription_id']
-        self.__azureCredentials = ServicePrincipalCredentials(
-            client_id=configuration['client_id'],
-            secret=configuration['client_secret'],
-            tenant=configuration['tenant_id']
-        )
+
         self.resource_group = configuration['resource_group']
         self.storage_account_name = configuration['storageAccount']
         self.storage_account_key = configuration['storageAccessKey']
 
         self.block_blob_service = BlockBlobService(
             account_name=self.storage_account_name, account_key=self.storage_account_key)
-        self.compute_client = ComputeManagementClient(
-            self.__azureCredentials, self.subscription_id)
 
         # +-> Check whether the given container exists and accessible
         if (not self.get_container()) or (not self.access_container()):
             msg = 'Could not find or access the given container.'
             self.last_operation(msg, 'failed')
             raise Exception(msg)
-
-        # scsi_host_number would be used to determine lun to device mapping
-        # scsi_host_number would be same for all data volumes/disks
-        self.scsi_host_number = self.get_host_number_of_data_volumes()
-        if not self.scsi_host_number:
-            msg = 'Could not determine SCSI host number for data volume'
-            self.last_operation(msg, 'failed')
-            raise Exception(msg)
-        self.instance_location = None
 
         self.max_block_size = 100 * 1024 * 1024
 
@@ -452,6 +437,7 @@ class AzureClient(BaseClient):
 
     def _upload_to_blobstore(self, blob_to_upload_path, blob_target_name, max_connections=2):
         log_prefix = '[AZURE STORAGE CONTAINER] [UPLOAD]'
+        self.logger.info('****** inside upload to blobstore ')
         self.logger.info(
             '{} Started to upload the tarball to the object storage.'.format(log_prefix))
         try:
